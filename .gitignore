@@ -1,0 +1,35 @@
+# Dependencies
+pubspec.lock
+.dart_tool/
+.packages
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Build outputs
+build/
+dist/
+*.so
+*.dylib
+*.dll
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# Misc
+.DS_Store
+Thumbs.db

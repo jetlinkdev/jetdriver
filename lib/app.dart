@@ -1,0 +1,35 @@
+import 'package:flutter/material.dart';
+import 'package:jetdriver/screens/home_screen.dart';
+import 'package:jetdriver/utils/logger.dart';
+import 'package:provider/provider.dart';
+
+class JetdriverApp extends StatelessWidget {
+  const JetdriverApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        // Logger provider
+        ChangeNotifierProvider(
+          create: (_) => Logger.instance,
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Jetlink Driver',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          primaryColor: const Color(0xFF4CAF50),
+          scaffoldBackgroundColor: const Color(0xFF16213E),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF4CAF50),
+            brightness: Brightness.dark,
+          ),
+        ),
+        home: const HomeScreen(),
+      ),
+    );
+  }
+}

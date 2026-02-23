@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "706026144910",
+    "project_id": "jetlink-47eb8",
+    "storage_bucket": "jetlink-47eb8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706026144910:android:95e42af170147a8a7475df",
+        "android_client_info": {
+          "package_name": "com.ferdifir.jetdriver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "706026144910-ujvbei2jabqik1j1ec36n4a0ghjvdp4r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ferdifir.jetdriver",
+            "certificate_hash": "85be2b8089648864b3b2a70eb685b54a19c44d59"
+          }
+        },
+        {
+          "client_id": "706026144910-7u2dp4mk5rf8f1gfqur7bgl1vfjfkn9m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmgmJjvS8mR4XFa09Cc3zdtLGCy83oj4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "706026144910-7u2dp4mk5rf8f1gfqur7bgl1vfjfkn9m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "706026144910-53n7hj9evps66ma9l8bb4n9at70nhru6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ferdifir.jetlink"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706026144910:android:eef252f49c6474cd7475df",
+        "android_client_info": {
+          "package_name": "com.ferdifir.jetlink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "706026144910-qe9071oqe8e30rbb6ci3cljetpq5rmd5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ferdifir.jetlink",
+            "certificate_hash": "85be2b8089648864b3b2a70eb685b54a19c44d59"
+          }
+        },
+        {
+          "client_id": "706026144910-7u2dp4mk5rf8f1gfqur7bgl1vfjfkn9m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmgmJjvS8mR4XFa09Cc3zdtLGCy83oj4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "706026144910-7u2dp4mk5rf8f1gfqur7bgl1vfjfkn9m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "706026144910-53n7hj9evps66ma9l8bb4n9at70nhru6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ferdifir.jetlink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
