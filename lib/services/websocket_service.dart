@@ -246,6 +246,28 @@ class WebSocketService {
     }
   }
 
+  /// Send get_my_bids request
+  void sendGetMyBids() {
+    if (!isConnected) {
+      Logger.instance.error('Cannot get my bids: WebSocket is not connected');
+      return;
+    }
+
+    try {
+      final getBidsData = {
+        IntentConstants.intentKey: IntentConstants.getMyBids,
+        IntentConstants.dataKey: {},
+        IntentConstants.timestampKey: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      };
+
+      sendJson(getBidsData);
+      Logger.instance.info('Get my bids request sent');
+    } catch (e) {
+      Logger.instance.error('Error sending get my bids: $e');
+      onError?.call('Send get my bids error: $e');
+    }
+  }
+
   /// Send ping message
   void sendPing() {
     if (!isConnected) {

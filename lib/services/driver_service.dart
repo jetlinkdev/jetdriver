@@ -137,6 +137,15 @@ class DriverService extends ChangeNotifier {
       case IntentConstants.bidRejected:
         _handleBidRejected(message.data);
         break;
+      case IntentConstants.orderCancelled:
+        _handleOrderCancelled(message.data);
+        break;
+      case IntentConstants.tripCompleted:
+        _handleTripCompleted(message.data);
+        break;
+      case IntentConstants.myBids:
+        _handleMyBids(message.data);
+        break;
       case IntentConstants.auth:
         _handleAuth(message.data);
         break;
@@ -203,8 +212,18 @@ class DriverService extends ChangeNotifier {
   void _handleNewOrder(dynamic data) {
     if (data is Map<String, dynamic>) {
       final order = Order.fromJson(data);
-      _orders.add(order);
-      debugPrint('New order received: #${order.id}');
+      
+      // Check if order already exists to prevent duplication
+      final existingIndex = _orders.indexWhere((o) => o.id == order.id);
+      if (existingIndex != -1) {
+        // Update existing order
+        _orders[existingIndex] = order;
+        debugPrint('Order #${order.id} updated');
+      } else {
+        // Add new order
+        _orders.add(order);
+        debugPrint('New order received: #${order.id}');
+      }
       notifyListeners();
     }
   }
@@ -240,6 +259,72 @@ class DriverService extends ChangeNotifier {
           debugPrint('Bid rejected for order #$orderId');
           notifyListeners();
         }
+      }
+    }
+  }
+
+  /// Handle order cancelled
+  void _handleOrderCancelled(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final orderId = data['order_id'] as int?;
+      if (orderId != null) {
+        final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+        if (orderIndex != -1) {
+          _orders[orderIndex] = _orders[orderIndex].copyWith(
+            status: APIConstants.orderStatusCancelled,
+          );
+          debugPrint('Order #$orderId cancelled');
+          notifyListeners();
+        }
+      }
+    }
+  }
+
+  /// Handle trip completed
+  void _handleTripCompleted(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final orderId = data['order_id'] as int?;
+      if (orderId != null) {
+        final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+        if (orderIndex != -1) {
+          _orders[orderIndex] = _orders[orderIndex].copyWith(
+            status: APIConstants.orderStatusCompleted,
+          );
+          debugPrint('Trip #$orderId completed');
+          notifyListeners();
+        }
+      }
+    }
+  }
+
+  /// Handle my bids response
+  void _handleMyBids(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final bids = data['bids'] as List?;
+      if (bids != null) {
+        debugPrint('Received ${bids.length} existing bids');
+        
+        // Process each bid and update orders
+        for (var bidData in bids) {
+          if (bidData is Map<String, dynamic>) {
+            final order = Order.fromJson(bidData);
+            
+            // Check if order already exists
+            final existingIndex = _orders.indexWhere((o) => o.id == order.id);
+            if (existingIndex != -1) {
+              // Update existing order with bid info
+              _orders[existingIndex] = _orders[existingIndex].copyWith(
+                driverId: order.driverId,
+                bidPrice: order.bidPrice,
+                bidStatus: 'pending',
+              );
+            } else {
+              // Add new order
+              _orders.add(order.copyWith(bidStatus: 'pending'));
+            }
+          }
+        }
+        notifyListeners();
       }
     }
   }
@@ -371,6 +456,12 @@ class DriverService extends ChangeNotifier {
 
     _wsService.sendJson(authData);
     debugPrint('Auth sent to server');
+
+    // Request existing bids after auth
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _wsService.sendGetMyBids();
+      debugPrint('Get my bids request sent');
+    });
   }
 
   /// Check driver registration status

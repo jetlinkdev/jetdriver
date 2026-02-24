@@ -8,12 +8,16 @@ class IntentConstants {
   static const String auth = 'auth';
   static const String driverRegistration = 'driver_registration';
   static const String checkDriverStatus = 'check_driver_status';
+  static const String getMyBids = 'get_my_bids';
 
   // Server -> Client intents
   static const String pong = 'pong';
   static const String newOrderAvailable = 'new_order_available';
   static const String bidAccepted = 'bid_accepted';
   static const String bidRejected = 'bid_rejected';
+  static const String orderCancelled = 'order_cancelled';
+  static const String tripCompleted = 'trip_completed';
+  static const String myBids = 'my_bids';
   static const String driverRegistered = 'driver_registered';
   static const String driverStatus = 'driver_status';
   static const String error = 'error';
