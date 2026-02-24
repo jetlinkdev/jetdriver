@@ -16,7 +16,7 @@ class JetdriverApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Jetlink Driver',
+        title: 'Jetdriver',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

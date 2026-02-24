@@ -108,6 +108,7 @@ class OrderCard extends StatelessWidget {
     String statusText;
     Color statusColor;
 
+    // Check if bid was accepted by customer (status = 'accepted')
     if (order.status == 'accepted') {
       statusText = 'Accepted';
       statusColor = Colors.green;
@@ -118,9 +119,15 @@ class OrderCard extends StatelessWidget {
       statusText = 'Completed';
       statusColor = Colors.grey;
     } else if (order.bidStatus == 'pending') {
-      statusText = 'Bid Pending';
+      // Driver submitted bid, waiting for customer
+      statusText = 'Waiting Customer';
       statusColor = Colors.orange;
+    } else if (order.bidStatus == 'rejected') {
+      // Bid was declined by customer
+      statusText = 'Bid Declined';
+      statusColor = Colors.red;
     } else {
+      // Order available for bidding
       statusText = 'Available';
       statusColor = Colors.green;
     }
@@ -291,14 +298,23 @@ class OrderCard extends StatelessWidget {
       return _buildArrivedActions();
     }
 
+    // CRITICAL: "I'm Here" button ONLY shows when customer ACCEPTED the bid
+    // order.status == 'accepted' means customer selected this driver
     if (order.status == 'accepted') {
       return _buildAcceptedStatus();
     }
 
-    if (order.bidStatus == 'pending' || order.driverId != null) {
+    // Bid was rejected by customer
+    if (order.bidStatus == 'rejected') {
+      return _buildBidRejectedStatus();
+    }
+
+    // Driver submitted bid, waiting for customer decision
+    if (order.bidStatus == 'pending' || (order.driverId != null && order.driverId!.isNotEmpty)) {
       return _buildBidPendingStatus();
     }
 
+    // Order available for bidding
     return _buildBidActions();
   }
 
@@ -351,17 +367,42 @@ class OrderCard extends StatelessWidget {
       child: Row(
         children: [
           const Icon(
-            Icons.check_circle,
-            color: Color(0xFF4CAF50),
+            Icons.hourglass_empty,
+            color: Colors.orange,
             size: 20,
           ),
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'Bid submitted - Waiting for acceptance',
+              'Bid submitted - Waiting for customer',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF4CAF50),
+                color: Colors.orange,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBidRejectedStatus() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.close,
+            color: Colors.red,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Bid declined by customer',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red,
               ),
             ),
           ),
