@@ -9,11 +9,11 @@ import '../services/driver_service.dart';
 import '../utils/logger.dart';
 import '../widgets/order_card.dart';
 import '../widgets/bid_bottom_sheet.dart';
-import '../widget/welcome_dialog.dart';
 import '../widget/profile_completion_dialog.dart';
 import '../widgets/earnings_card.dart';
 import 'settings_screen.dart';
 import 'driver_registration_screen.dart';
+import 'welcome_screen.dart';
 
 /// Main home screen for driver app
 class HomeScreen extends StatefulWidget {
@@ -47,14 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _wsUrlController.text = _driverService.webSocketUrl;
     });
 
-    // Check if user is logged in
-    final isLoggedIn = _authService.currentUser != null;
-    if (!isLoggedIn && mounted) {
-      _showWelcomeDialog();
-    } else if (isLoggedIn && mounted) {
-      // User is logged in, connect to WebSocket and check driver status
-      _initializeDriver();
-    }
+    // User is already authenticated (checked by SplashScreen)
+    // Connect to WebSocket and check driver status
+    _initializeDriver();
   }
 
   Future<void> _initializeDriver() async {
@@ -176,33 +171,16 @@ class _HomeScreenState extends State<HomeScreen> {
     _logger.info('Complete profile sent to backend');
   }
 
-  void _showWelcomeDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => WelcomeDialog(
-        onLoginPressed: () async {
-          final user = await _authService.signInWithGoogle();
-          if (user != null) {
-            if (mounted) {
-              Navigator.of(context).pop();
-              _logger.success('${UIStrings.userLoggedIn}: ${user.user?.email}');
-            }
-          } else {
-            _logger.error(UIStrings.loginFailed);
-          }
-        },
-      ),
-    );
-  }
-
   Future<void> _handleLogout() async {
     await _authService.signOut();
     _logger.info(UIStrings.userLoggedOut);
 
     if (mounted) {
-      // Show welcome dialog after logout
-      _showWelcomeDialog();
+      // Navigate to welcome screen after logout
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (route) => false,
+      );
     }
   }
 

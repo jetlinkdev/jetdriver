@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jetdriver/screens/home_screen.dart';
+import 'package:jetdriver/screens/splash_screen.dart';
 import 'package:jetdriver/utils/logger.dart';
 import 'package:provider/provider.dart';
 
@@ -28,7 +28,7 @@ class JetdriverApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
         ),
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }
