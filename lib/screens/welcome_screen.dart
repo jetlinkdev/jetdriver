@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../constants/app_colors.dart';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
-import 'driver_registration_screen.dart';
 
 /// Welcome screen for users to choose login or register
 class WelcomeScreen extends StatefulWidget {
@@ -19,13 +17,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   late Animation<Offset> _slideAnimation;
   bool _isLoading = false;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -55,36 +52,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     });
 
     try {
-      await _googleSignIn.initialize();
-      
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        // User canceled sign in
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await _auth.signInWithCredential(credential);
+      final userCredential = await _authService.signInWithGoogle();
 
       if (!mounted) return;
 
-      // Navigate to home screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (userCredential != null) {
+        // Navigate to home screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else {
+        // Show error dialog
+        _showErrorDialog('Sign in failed. Please try again.');
+      }
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -139,17 +126,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Spacer(),
-                      
+
                       // Logo and Title Section
                       _buildHeader(),
-                      
+
                       const Spacer(),
-                      
+
                       // Buttons Section
                       _buildButtons(),
-                      
+
                       const Spacer(),
-                      
+
                       // Footer
                       _buildFooter(),
                     ],
@@ -188,7 +175,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           ),
         ),
         const SizedBox(height: 32),
-        
+
         // App Name
         const Text(
           'Jetdriver',
@@ -201,7 +188,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
-        
+
         // Tagline
         Text(
           'Drive & Earn with Jetlink',
@@ -249,6 +236,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
                       height: 24,
                       width: 24,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to icon if image fails to load
+                        return const Icon(Icons.g_mobiledata, size: 24, color: Colors.grey);
+                      },
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -261,9 +252,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   ],
                 ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Terms and Conditions
         Text(
           'By continuing, you agree to our',
