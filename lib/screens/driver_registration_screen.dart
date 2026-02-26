@@ -16,6 +16,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _vehicleTypeController = TextEditingController();
   final _vehiclePlateController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
   final _logger = Logger.instance;
   final _driverService = DriverService.instance;
 
@@ -25,6 +26,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   void dispose() {
     _vehicleTypeController.dispose();
     _vehiclePlateController.dispose();
+    _phoneNumberController.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
       final success = await _driverService.registerDriver(
         vehicleType: _vehicleTypeController.text.trim(),
         vehiclePlate: _vehiclePlateController.text.trim().toUpperCase(),
+        phoneNumber: _phoneNumberController.text.trim(),
       );
 
       if (success && mounted) {
@@ -146,6 +149,46 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+
+                // Phone Number Field
+                const Text(
+                  'Phone Number',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneNumberController,
+                  decoration: InputDecoration(
+                    hintText: 'e.g., +62 812 3456 7890',
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    filled: true,
+                    fillColor: AppColors.cardBackground,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.phone,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'Please enter a valid phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
 
                 // Vehicle Type Field
                 const Text(

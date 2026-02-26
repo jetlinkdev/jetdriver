@@ -32,6 +32,8 @@ class DriverService extends ChangeNotifier {
   String _vehicleType = '';
   String _vehiclePlate = '';
   bool _isVerified = false;
+  String _userRole = 'customer'; // Store user role (customer/driver)
+  String _phoneNumber = ''; // Store phone number
 
   // Orders list
   final List<Order> _orders = [];
@@ -50,6 +52,8 @@ class DriverService extends ChangeNotifier {
   String get vehicleType => _vehicleType;
   String get vehiclePlate => _vehiclePlate;
   bool get isVerified => _isVerified;
+  String get userRole => _userRole;
+  String get phoneNumber => _phoneNumber;
 
   /// Initialize driver service
   Future<void> initialize() async {
@@ -116,6 +120,11 @@ class DriverService extends ChangeNotifier {
     _wsService.disconnect();
   }
 
+  /// Send JSON message via WebSocket
+  void sendJson(Map<String, dynamic> json) {
+    _wsService.sendJson(json);
+  }
+
   /// Setup WebSocket message listener
   void _setupMessageListener() {
     _messageSubscription = _wsService.messageStream.listen((message) {
@@ -161,6 +170,22 @@ class DriverService extends ChangeNotifier {
       case IntentConstants.error:
         debugPrint('Error from server: ${message.data}');
         break;
+      // NEW: Handle additional server responses
+      case IntentConstants.authProfileNeeded:
+        _handleAuthProfileNeeded(message.data);
+        break;
+      case IntentConstants.orderStateSync:
+        _handleOrderStateSync(message.data);
+        break;
+      case IntentConstants.existingOrderFound:
+        _handleExistingOrderFound(message.data);
+        break;
+      case IntentConstants.newBidReceived:
+        _handleNewBidReceived(message.data);
+        break;
+      case IntentConstants.driverArrivedResponse:
+        _handleDriverArrivedResponse(message.data);
+        break;
       default:
         debugPrint('Unknown intent: ${message.intent}');
     }
@@ -172,10 +197,12 @@ class DriverService extends ChangeNotifier {
       final user = data['user'] as Map<String, dynamic>?;
       if (user != null) {
         _isDriverRegistered = user['role'] == 'driver';
+        _userRole = user['role'] ?? 'customer';
         _isVerified = user['isVerified'] ?? false;
         _vehicleType = user['vehicleType'] ?? '';
         _vehiclePlate = user['vehiclePlate'] ?? '';
-        debugPrint('Auth response: isDriver=$_isDriverRegistered, verified=$_isVerified');
+        _phoneNumber = user['phoneNumber'] ?? '';
+        debugPrint('Auth response: role=$_userRole, isDriver=$_isDriverRegistered, verified=$_isVerified, phone=$_phoneNumber');
         notifyListeners();
       }
     }
@@ -203,8 +230,140 @@ class DriverService extends ChangeNotifier {
       _isVerified = data['isVerified'] as bool? ?? false;
       _vehicleType = data['vehicleType'] as String? ?? '';
       _vehiclePlate = data['vehiclePlate'] as String? ?? '';
-      debugPrint('Driver status: isDriver=$_isDriverRegistered, verified=$_isVerified');
+      _userRole = data['isDriver'] == true ? 'driver' : 'customer';
+      debugPrint('Driver status: isDriver=$_isDriverRegistered, verified=$_isVerified, role=$_userRole');
       notifyListeners();
+    }
+  }
+
+  /// Handle auth_profile_needed response - user needs to complete profile
+  void _handleAuthProfileNeeded(dynamic data) {
+    debugPrint('Auth profile needed: ${data?['message']}');
+    // This intent indicates the user needs to complete their profile
+    // The UI should show a dialog to collect email, displayName, phoneNumber
+    // For now, we just log it - the home_screen will handle showing the dialog
+    notifyListeners();
+  }
+
+  /// Handle order_state_sync - sync order state after reconnect
+  void _handleOrderStateSync(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      debugPrint('Order state synced: ${data['ui_state']} for order #${data['order_id']}');
+      
+      // Sync order data from server
+      final orderId = data['order_id'] as int?;
+      if (orderId != null) {
+        // Check if order already exists
+        final existingIndex = _orders.indexWhere((o) => o.id == orderId);
+        
+        if (existingIndex != -1) {
+          // Update existing order with latest data
+          _orders[existingIndex] = _orders[existingIndex].copyWith(
+            status: data['status'] as String? ?? _orders[existingIndex].status,
+            bidPrice: (data['bid_price'] as num?)?.toDouble() ?? _orders[existingIndex].bidPrice,
+            estimatedArrivalTime: data['estimated_arrival_time'] != null
+                ? DateTime.fromMillisecondsSinceEpoch((data['estimated_arrival_time'] as int) * 1000)
+                : _orders[existingIndex].estimatedArrivalTime,
+          );
+        } else {
+          // Create new order from sync data
+          final order = Order(
+            id: orderId,
+            userId: data['user_id'] as String? ?? '',
+            driverId: data['driver_id'] as String?,
+            pickup: data['pickup'] as String? ?? '',
+            pickupLatitude: (data['pickup_latitude'] as num?)?.toDouble() ?? 0.0,
+            pickupLongitude: (data['pickup_longitude'] as num?)?.toDouble() ?? 0.0,
+            destination: data['destination'] as String? ?? '',
+            destinationLatitude: (data['destination_latitude'] as num?)?.toDouble() ?? 0.0,
+            destinationLongitude: (data['destination_longitude'] as num?)?.toDouble() ?? 0.0,
+            notes: data['notes'] as String? ?? '',
+            payment: data['payment'] as String? ?? APIConstants.paymentCash,
+            status: data['status'] as String? ?? APIConstants.orderStatusPending,
+            fare: (data['fare'] as num?)?.toDouble() ?? 0.0,
+            bidPrice: (data['bid_price'] as num?)?.toDouble(),
+            estimatedArrivalTime: data['estimated_arrival_time'] != null
+                ? DateTime.fromMillisecondsSinceEpoch((data['estimated_arrival_time'] as int) * 1000)
+                : null,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          _orders.add(order);
+        }
+        
+        debugPrint('Order #${orderId} synced with status: ${data['ui_state']}');
+        notifyListeners();
+      }
+      
+      // Handle existing bids from server
+      final bids = data['bids'] as List?;
+      if (bids != null) {
+        debugPrint('Synced ${bids.length} existing bids');
+        for (var bidData in bids) {
+          if (bidData is Map<String, dynamic>) {
+            final bidOrderId = bidData['order_id'] as int?;
+            if (bidOrderId != null) {
+              final orderIndex = _orders.indexWhere((o) => o.id == bidOrderId);
+              if (orderIndex != -1) {
+                _orders[orderIndex] = _orders[orderIndex].copyWith(
+                  driverId: bidData['driver_id'] as String?,
+                  bidPrice: (bidData['bid_price'] as num?)?.toDouble(),
+                  bidStatus: 'pending',
+                );
+              }
+            }
+          }
+        }
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Handle existing_order_found - user already has active order
+  void _handleExistingOrderFound(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final orderId = data['order_id'] as int?;
+      final uiState = data['ui_state'] as String?;
+      debugPrint('Existing order found: #${orderId} with state: ${uiState}');
+      
+      if (orderId != null) {
+        // Update or create order in local state
+        final existingIndex = _orders.indexWhere((o) => o.id == orderId);
+        if (existingIndex != -1) {
+          _orders[existingIndex] = _orders[existingIndex].copyWith(
+            status: data['status'] as String? ?? _orders[existingIndex].status,
+          );
+        }
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Handle new_bid_received - notification when a new bid is placed
+  void _handleNewBidReceived(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      debugPrint('New bid received: ${data['driver_id']} for order #${data['order_id']}');
+      // This is mainly for customer app, but driver can log it for awareness
+      // In a competitive scenario, drivers might want to know about other bids
+    }
+  }
+
+  /// Handle driver_arrived response - confirmation that driver arrival was recorded
+  void _handleDriverArrivedResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final orderId = data['order_id'] as int?;
+      final status = data['status'] as String?;
+      debugPrint('Driver arrived confirmed for order #${orderId}: ${status}');
+      
+      if (orderId != null) {
+        final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+        if (orderIndex != -1) {
+          _orders[orderIndex] = _orders[orderIndex].copyWith(
+            status: APIConstants.orderStatusDriverArrived,
+          );
+          notifyListeners();
+        }
+      }
     }
   }
 
@@ -450,6 +609,7 @@ class DriverService extends ChangeNotifier {
         'email': user.email,
         'displayName': user.displayName,
         'photoURL': user.photoURL,
+        'phoneNumber': _phoneNumber, // Include phone number if available
       },
       IntentConstants.timestampKey: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
@@ -488,6 +648,7 @@ class DriverService extends ChangeNotifier {
   Future<bool> registerDriver({
     required String vehicleType,
     required String vehiclePlate,
+    String? phoneNumber,
   }) async {
     final user = AuthService().currentUser;
     if (user == null) {
@@ -501,6 +662,7 @@ class DriverService extends ChangeNotifier {
         'uid': user.uid,
         'email': user.email,
         'displayName': user.displayName,
+        'phoneNumber': phoneNumber ?? _phoneNumber, // Use provided or stored phone number
         'vehicleType': vehicleType,
         'vehiclePlate': vehiclePlate,
       },

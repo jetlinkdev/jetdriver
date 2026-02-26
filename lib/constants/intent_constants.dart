@@ -21,6 +21,12 @@ class IntentConstants {
   static const String driverRegistered = 'driver_registered';
   static const String driverStatus = 'driver_status';
   static const String error = 'error';
+  // Additional server -> client intents
+  static const String authProfileNeeded = 'auth_profile_needed';
+  static const String orderStateSync = 'order_state_sync';
+  static const String existingOrderFound = 'existing_order_found';
+  static const String newBidReceived = 'new_bid_received';
+  static const String driverArrivedResponse = 'driver_arrived';
 
   // Intent data keys
   static const String intentKey = 'intent';

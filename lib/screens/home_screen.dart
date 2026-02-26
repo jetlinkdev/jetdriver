@@ -10,6 +10,7 @@ import '../utils/logger.dart';
 import '../widgets/order_card.dart';
 import '../widgets/bid_bottom_sheet.dart';
 import '../widget/welcome_dialog.dart';
+import '../widget/profile_completion_dialog.dart';
 import '../widgets/earnings_card.dart';
 import 'settings_screen.dart';
 import 'driver_registration_screen.dart';
@@ -30,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
 
   int _selectedIndex = 0;
+  bool _needsProfileCompletion = false;
+  bool _hasShownProfileDialog = false;
 
   @override
   void initState() {
@@ -60,7 +63,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (connected && mounted) {
       // Send auth to backend
       await _driverService.sendAuth();
-      
+
+      // Listen for auth_profile_needed response
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted && !_needsProfileCompletion && !_hasShownProfileDialog) {
+          // Check if we need to show profile completion dialog
+          // This will be triggered by the auth_profile_needed intent from server
+          _checkAndShowProfileDialog();
+        }
+      });
+
       // Check driver registration status after a short delay
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -68,6 +80,14 @@ class _HomeScreenState extends State<HomeScreen> {
           _checkAndShowRegistrationDialog();
         }
       });
+    }
+  }
+
+  void _checkAndShowProfileDialog() {
+    // Show profile completion dialog if needed
+    // This is triggered when backend sends auth_profile_needed
+    if (!_hasShownProfileDialog && mounted) {
+      _showProfileCompletionDialog();
     }
   }
 
@@ -114,6 +134,46 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _showProfileCompletionDialog() {
+    setState(() {
+      _hasShownProfileDialog = true;
+    });
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ProfileCompletionDialog(
+        onComplete: ({required String email, required String displayName, required String phoneNumber}) {
+          // Send complete_profile intent to backend
+          _sendCompleteProfile(email: email, displayName: displayName, phoneNumber: phoneNumber);
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  void _sendCompleteProfile({required String email, required String displayName, required String phoneNumber}) {
+    final user = _authService.currentUser;
+    if (user == null) {
+      _logger.error('No authenticated user for complete profile');
+      return;
+    }
+
+    final profileData = {
+      'intent': 'complete_profile',
+      'data': {
+        'uid': user.uid,
+        'email': email,
+        'displayName': displayName,
+        'phoneNumber': phoneNumber,
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+
+    _driverService.sendJson(profileData);
+    _logger.info('Complete profile sent to backend');
   }
 
   void _showWelcomeDialog() {

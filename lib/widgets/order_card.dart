@@ -236,22 +236,41 @@ class OrderCard extends StatelessWidget {
             value: order.payment,
           ),
           const SizedBox(height: 8),
+          // Pickup time row - show scheduled time or "Segera"
+          _buildDetailRow(
+            icon: Icons.access_time,
+            label: 'Pickup Time',
+            value: order.time != null
+                ? _formatPickupTime(order.time!)
+                : 'Segera',
+          ),
+          const SizedBox(height: 8),
           _buildDetailRow(
             icon: Icons.note,
             label: 'Notes',
             value: order.notes.isEmpty ? '-' : order.notes,
           ),
-          const SizedBox(height: 8),
-          _buildDetailRow(
-            icon: Icons.access_time,
-            label: 'Time',
-            value: order.time != null
-                ? '${order.time!.hour.toString().padLeft(2, '0')}:${order.time!.minute.toString().padLeft(2, '0')}'
-                : 'Now',
-          ),
         ],
       ),
     );
+  }
+
+  /// Format pickup time to readable string
+  String _formatPickupTime(DateTime time) {
+    final now = DateTime.now();
+    final isToday = time.year == now.year && time.month == now.month && time.day == now.day;
+    final isTomorrow = time.difference(now).inDays == 1;
+    
+    final timeStr = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    
+    if (isToday) {
+      return 'Today, $timeStr';
+    } else if (isTomorrow) {
+      return 'Tomorrow, $timeStr';
+    } else {
+      final dateFormat = DateFormat('EEE, dd MMM');
+      return '${dateFormat.format(time)}, $timeStr';
+    }
   }
 
   Widget _buildDetailRow({
