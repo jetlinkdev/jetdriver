@@ -3,8 +3,8 @@ import '../constants/hive_constants.dart';
 /// Application configuration for Jetdriver
 class AppConfig {
   // WebSocket server URL
-  // Default to the current ngrok URL
-  static const String defaultWebSocketUrl = 'wss://40e3-2404-c0-3071-132d-795c-3af-cb74-e029.ngrok-free.app/ws';
+  // Updated to the current ngrok URL
+  static const String defaultWebSocketUrl = 'wss://0564-2404-c0-3467-e515-7f6f-e350-75ce-759e.ngrok-free.app/ws';
 
   // App version
   static const String appVersion = '1.0.0';
