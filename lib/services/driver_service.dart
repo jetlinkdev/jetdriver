@@ -42,6 +42,23 @@ class DriverService extends ChangeNotifier {
   final WebSocketService _wsService = WebSocketService.instance;
   StreamSubscription? _messageSubscription;
 
+  // Anchor variables untuk WebSocket response handling
+  bool _isWaitingForAuthResponse = false;
+  bool _isWaitingForRegistrationResponse = false;
+  bool _isWaitingForBidResponse = false;
+  bool _isWaitingForArrivalResponse = false;
+  bool _isWaitingForCompletionResponse = false;
+  int? _currentBidOrderId;
+  int? _currentArrivalOrderId;
+  int? _currentCompletionOrderId;
+
+  // Completers untuk masing-masing operasi
+  Completer<void>? _authResponseCompleter;
+  Completer<void>? _registrationResponseCompleter;
+  Completer<Map<String, dynamic>>? _bidResponseCompleter;
+  Completer<void>? _arrivalResponseCompleter;
+  Completer<void>? _completionResponseCompleter;
+
   // Getters
   String get driverId => _driverId;
   DriverStatus get driverStatus => _driverStatus;
@@ -193,6 +210,12 @@ class DriverService extends ChangeNotifier {
 
   /// Handle auth response
   void _handleAuth(dynamic data) {
+    // Validasi: hanya proses jika sedang waiting untuk auth response
+    if (!_isWaitingForAuthResponse) {
+      debugPrint('Auth response received but not waiting - ignoring');
+      return;
+    }
+
     if (data is Map<String, dynamic>) {
       final user = data['user'] as Map<String, dynamic>?;
       if (user != null) {
@@ -202,7 +225,16 @@ class DriverService extends ChangeNotifier {
         _vehicleType = user['vehicleType'] ?? '';
         _vehiclePlate = user['vehiclePlate'] ?? '';
         _phoneNumber = user['phoneNumber'] ?? '';
-        debugPrint('Auth response: role=$_userRole, isDriver=$_isDriverRegistered, verified=$_isVerified, phone=$_phoneNumber');
+        debugPrint('Auth response: role=$_userRole, isDriver=$_isDriverRegistered, verified=$_isVerified');
+
+        // Reset anchor
+        _isWaitingForAuthResponse = false;
+
+        // Complete completer
+        if (_authResponseCompleter != null && !_authResponseCompleter!.isCompleted) {
+          _authResponseCompleter!.complete();
+        }
+
         notifyListeners();
       }
     }
@@ -210,6 +242,12 @@ class DriverService extends ChangeNotifier {
 
   /// Handle driver registration success
   void _handleDriverRegistered(dynamic data) {
+    // Validasi: hanya proses jika sedang waiting untuk registration response
+    if (!_isWaitingForRegistrationResponse) {
+      debugPrint('Driver registered response received but not waiting - ignoring');
+      return;
+    }
+
     if (data is Map<String, dynamic>) {
       final user = data['user'] as Map<String, dynamic>?;
       if (user != null) {
@@ -218,9 +256,28 @@ class DriverService extends ChangeNotifier {
         _vehicleType = user['vehicleType'] ?? '';
         _vehiclePlate = user['vehiclePlate'] ?? '';
         debugPrint('Driver registration successful');
+
+        // Reset anchor
+        _isWaitingForRegistrationResponse = false;
+
+        // Complete completer
+        if (_registrationResponseCompleter != null && !_registrationResponseCompleter!.isCompleted) {
+          _registrationResponseCompleter!.complete();
+        }
+
         notifyListeners();
       }
     }
+  }
+
+  /// Public method for DriverRegistrationScreen to handle registration response
+  void handleDriverRegistrationResponse(Map<String, dynamic> user) {
+    _isDriverRegistered = true;
+    _isVerified = true;
+    _vehicleType = user['vehicleType'] ?? '';
+    _vehiclePlate = user['vehiclePlate'] ?? '';
+    debugPrint('Driver registration response handled');
+    notifyListeners();
   }
 
   /// Handle driver status check response
@@ -238,11 +295,13 @@ class DriverService extends ChangeNotifier {
 
   /// Handle auth_profile_needed response - user needs to complete profile
   void _handleAuthProfileNeeded(dynamic data) {
-    debugPrint('Auth profile needed: ${data?['message']}');
-    // This intent indicates the user needs to complete their profile
-    // The UI should show a dialog to collect email, displayName, phoneNumber
-    // For now, we just log it - the home_screen will handle showing the dialog
-    notifyListeners();
+    if (data is Map<String, dynamic>) {
+      final needsProfile = data['needs_profile'] as bool? ?? true;
+      debugPrint('Auth profile needed: needs_profile=$needsProfile');
+      // This intent indicates the user needs to complete their profile
+      // The UI should show the registration screen to collect all data
+      notifyListeners();
+    }
   }
 
   /// Handle order_state_sync - sync order state after reconnect
@@ -353,8 +412,16 @@ class DriverService extends ChangeNotifier {
     if (data is Map<String, dynamic>) {
       final orderId = data['order_id'] as int?;
       final status = data['status'] as String?;
-      debugPrint('Driver arrived confirmed for order #${orderId}: ${status}');
-      
+      debugPrint('Driver arrived response for order #$orderId: $status');
+
+      // Validasi anchor - complete completer jika sedang waiting
+      if (_isWaitingForArrivalResponse && _currentArrivalOrderId == orderId) {
+        if (_arrivalResponseCompleter != null && !_arrivalResponseCompleter!.isCompleted) {
+          _arrivalResponseCompleter!.complete();
+        }
+        _isWaitingForArrivalResponse = false;
+      }
+
       if (orderId != null) {
         final orderIndex = _orders.indexWhere((o) => o.id == orderId);
         if (orderIndex != -1) {
@@ -392,6 +459,15 @@ class DriverService extends ChangeNotifier {
     if (data is Map<String, dynamic>) {
       final orderId = data[IntentConstants.orderIdKey] as int?;
       if (orderId != null) {
+        // Validasi anchor - complete completer jika sedang waiting
+        if (_isWaitingForBidResponse && _currentBidOrderId == orderId) {
+          if (_bidResponseCompleter != null && !_bidResponseCompleter!.isCompleted) {
+            _bidResponseCompleter!.complete({'status': 'accepted', 'order_id': orderId});
+          }
+          _isWaitingForBidResponse = false;
+        }
+
+        // Update order state
         final orderIndex = _orders.indexWhere((o) => o.id == orderId);
         if (orderIndex != -1) {
           _orders[orderIndex] = _orders[orderIndex].copyWith(
@@ -410,6 +486,15 @@ class DriverService extends ChangeNotifier {
     if (data is Map<String, dynamic>) {
       final orderId = data[IntentConstants.orderIdKey] as int?;
       if (orderId != null) {
+        // Validasi anchor - complete completer jika sedang waiting
+        if (_isWaitingForBidResponse && _currentBidOrderId == orderId) {
+          if (_bidResponseCompleter != null && !_bidResponseCompleter!.isCompleted) {
+            _bidResponseCompleter!.complete({'status': 'rejected', 'order_id': orderId});
+          }
+          _isWaitingForBidResponse = false;
+        }
+
+        // Update order state
         final orderIndex = _orders.indexWhere((o) => o.id == orderId);
         if (orderIndex != -1) {
           _orders[orderIndex] = _orders[orderIndex].copyWith(
@@ -444,6 +529,14 @@ class DriverService extends ChangeNotifier {
     if (data is Map<String, dynamic>) {
       final orderId = data['order_id'] as int?;
       if (orderId != null) {
+        // Validasi anchor - complete completer jika sedang waiting
+        if (_isWaitingForCompletionResponse && _currentCompletionOrderId == orderId) {
+          if (_completionResponseCompleter != null && !_completionResponseCompleter!.isCompleted) {
+            _completionResponseCompleter!.complete();
+          }
+          _isWaitingForCompletionResponse = false;
+        }
+
         final orderIndex = _orders.indexWhere((o) => o.id == orderId);
         if (orderIndex != -1) {
           _orders[orderIndex] = _orders[orderIndex].copyWith(
@@ -489,15 +582,20 @@ class DriverService extends ChangeNotifier {
   }
 
   /// Submit bid for an order
-  void submitBid({
+  Future<bool> submitBid({
     required int orderId,
     required double bidPrice,
     required int etaMinutes,
-  }) {
+  }) async {
     if (_driverId.isEmpty) {
       debugPrint('Driver ID is not set');
-      return;
+      return false;
     }
+
+    // Set anchor BEFORE sending
+    _isWaitingForBidResponse = true;
+    _currentBidOrderId = orderId;
+    _bidResponseCompleter = Completer<Map<String, dynamic>>();
 
     _wsService.sendSubmitBid(
       orderId: orderId,
@@ -506,59 +604,137 @@ class DriverService extends ChangeNotifier {
       etaMinutes: etaMinutes,
     );
 
-    // Update local state
-    final orderIndex = _orders.indexWhere((o) => o.id == orderId);
-    if (orderIndex != -1) {
-      _orders[orderIndex] = _orders[orderIndex].copyWith(
-        driverId: _driverId,
-        bidPrice: bidPrice,
-        bidStatus: 'pending',
+    debugPrint('Bid submitted for order #$orderId (waiting for response...)');
+
+    // Wait for response (bid_accepted, bid_rejected, or timeout)
+    try {
+      final response = await _bidResponseCompleter!.future.timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('Bid response timeout after 15s');
+          _isWaitingForBidResponse = false;
+          return {'status': 'timeout'};
+        },
       );
-      notifyListeners();
+
+      _isWaitingForBidResponse = false;
+      final status = response['status'] as String? ?? 'pending';
+      debugPrint('Bid response received: $status');
+
+      // Update local state based on response
+      final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+      if (orderIndex != -1) {
+        _orders[orderIndex] = _orders[orderIndex].copyWith(
+          driverId: _driverId,
+          bidPrice: bidPrice,
+          bidStatus: status,
+        );
+        notifyListeners();
+      }
+
+      return status == 'accepted';
+    } catch (e) {
+      debugPrint('Bid error: $e');
+      _isWaitingForBidResponse = false;
+      return false;
     }
   }
 
   /// Send driver arrival notification
-  void sendArrival(int orderId) {
+  Future<bool> sendArrival(int orderId) async {
     if (_driverId.isEmpty) {
       debugPrint('Driver ID is not set');
-      return;
+      return false;
     }
+
+    // Set anchor BEFORE sending
+    _isWaitingForArrivalResponse = true;
+    _currentArrivalOrderId = orderId;
+    _arrivalResponseCompleter = Completer<void>();
 
     _wsService.sendDriverArrived(
       orderId: orderId,
       driverId: _driverId,
     );
 
-    // Update local state
-    final orderIndex = _orders.indexWhere((o) => o.id == orderId);
-    if (orderIndex != -1) {
-      _orders[orderIndex] = _orders[orderIndex].copyWith(
-        status: APIConstants.orderStatusDriverArrived,
+    debugPrint('Arrival sent for order #$orderId (waiting for response...)');
+
+    // Wait for response with timeout
+    try {
+      await _arrivalResponseCompleter!.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('Arrival response timeout after 5s');
+          _isWaitingForArrivalResponse = false;
+        },
       );
-      notifyListeners();
+
+      _isWaitingForArrivalResponse = false;
+      debugPrint('Arrival response received successfully');
+
+      // Update local state
+      final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+      if (orderIndex != -1) {
+        _orders[orderIndex] = _orders[orderIndex].copyWith(
+          status: APIConstants.orderStatusDriverArrived,
+        );
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Arrival error: $e');
+      _isWaitingForArrivalResponse = false;
+      return false;
     }
   }
 
   /// Send trip completion notification
-  void sendTripCompletion(int orderId) {
+  Future<bool> sendTripCompletion(int orderId) async {
     if (_driverId.isEmpty) {
       debugPrint('Driver ID is not set');
-      return;
+      return false;
     }
+
+    // Set anchor BEFORE sending
+    _isWaitingForCompletionResponse = true;
+    _currentCompletionOrderId = orderId;
+    _completionResponseCompleter = Completer<void>();
 
     _wsService.sendCompleteTrip(
       orderId: orderId,
       driverId: _driverId,
     );
 
-    // Update local state
-    final orderIndex = _orders.indexWhere((o) => o.id == orderId);
-    if (orderIndex != -1) {
-      _orders[orderIndex] = _orders[orderIndex].copyWith(
-        status: APIConstants.orderStatusCompleted,
+    debugPrint('Trip completion sent for order #$orderId (waiting for response...)');
+
+    // Wait for response with timeout
+    try {
+      await _completionResponseCompleter!.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('Trip completion response timeout after 5s');
+          _isWaitingForCompletionResponse = false;
+        },
       );
-      notifyListeners();
+
+      _isWaitingForCompletionResponse = false;
+      debugPrint('Trip completion response received successfully');
+
+      // Update local state
+      final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+      if (orderIndex != -1) {
+        _orders[orderIndex] = _orders[orderIndex].copyWith(
+          status: APIConstants.orderStatusCompleted,
+        );
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Trip completion error: $e');
+      _isWaitingForCompletionResponse = false;
+      return false;
     }
   }
 
@@ -602,6 +778,10 @@ class DriverService extends ChangeNotifier {
       return;
     }
 
+    // Set anchor BEFORE sending request
+    _isWaitingForAuthResponse = true;
+    _authResponseCompleter = Completer<void>();
+
     final authData = {
       IntentConstants.intentKey: IntentConstants.auth,
       IntentConstants.dataKey: {
@@ -609,19 +789,41 @@ class DriverService extends ChangeNotifier {
         'email': user.email,
         'displayName': user.displayName,
         'photoURL': user.photoURL,
-        'phoneNumber': _phoneNumber, // Include phone number if available
+        'phoneNumber': _phoneNumber,
       },
       IntentConstants.timestampKey: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
 
     _wsService.sendJson(authData);
-    debugPrint('Auth sent to server');
+    debugPrint('Auth sent to server (waiting for response...)');
 
     // Request existing bids after auth
     Future.delayed(const Duration(milliseconds: 500), () {
       _wsService.sendGetMyBids();
       debugPrint('Get my bids request sent');
     });
+  }
+
+  /// Wait for auth response from server
+  Future<void> waitForAuthResponse() async {
+    debugPrint('Waiting for auth response...');
+    if (_authResponseCompleter != null && !_authResponseCompleter!.isCompleted) {
+      try {
+        await _authResponseCompleter!.future.timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            debugPrint('Auth response timeout after 5s');
+          },
+        );
+        debugPrint('Auth response received! isDriverRegistered=$_isDriverRegistered');
+      } catch (e) {
+        debugPrint('Error waiting for auth response: $e');
+      }
+    } else if (_authResponseCompleter == null) {
+      debugPrint('Auth completer not initialized!');
+    } else {
+      debugPrint('Auth response already completed');
+    }
   }
 
   /// Check driver registration status
@@ -644,11 +846,13 @@ class DriverService extends ChangeNotifier {
     debugPrint('Driver status check sent');
   }
 
-  /// Register as a driver
+  /// Register as a driver (includes complete profile)
   Future<bool> registerDriver({
     required String vehicleType,
     required String vehiclePlate,
-    String? phoneNumber,
+    required String phoneNumber,
+    required String displayName,
+    required String email,
   }) async {
     final user = AuthService().currentUser;
     if (user == null) {
@@ -656,13 +860,17 @@ class DriverService extends ChangeNotifier {
       return false;
     }
 
+    // Set anchor BEFORE sending request
+    _isWaitingForRegistrationResponse = true;
+    _registrationResponseCompleter = Completer<void>();
+
     final regData = {
       IntentConstants.intentKey: IntentConstants.driverRegistration,
       IntentConstants.dataKey: {
         'uid': user.uid,
-        'email': user.email,
-        'displayName': user.displayName,
-        'phoneNumber': phoneNumber ?? _phoneNumber, // Use provided or stored phone number
+        'email': email,
+        'displayName': displayName,
+        'phoneNumber': phoneNumber,
         'vehicleType': vehicleType,
         'vehiclePlate': vehiclePlate,
       },
@@ -670,10 +878,26 @@ class DriverService extends ChangeNotifier {
     };
 
     _wsService.sendJson(regData);
-    debugPrint('Driver registration sent');
+    debugPrint('Driver registration sent (waiting for response...)');
 
-    // Wait for response (handled in _handleDriverRegistered)
-    return true;
+    // Wait for response with timeout
+    try {
+      await _registrationResponseCompleter!.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('Registration response timeout after 10s');
+          _isWaitingForRegistrationResponse = false;
+        },
+      );
+      // Response berhasil diterima
+      _isWaitingForRegistrationResponse = false;
+      debugPrint('Registration response received successfully');
+      return true;
+    } catch (e) {
+      debugPrint('Registration error: $e');
+      _isWaitingForRegistrationResponse = false;
+      return false;
+    }
   }
 
   /// Dispose resources

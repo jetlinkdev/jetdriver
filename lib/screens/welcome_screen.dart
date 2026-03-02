@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 import '../constants/app_colors.dart';
+import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/driver_service.dart';
+import '../utils/helper.dart';
 import 'home_screen.dart';
+import 'driver_registration_screen.dart';
 
 /// Welcome screen for users to choose login or register
 class WelcomeScreen extends StatefulWidget {
@@ -16,8 +21,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   bool _isLoading = false;
+  String _loadingMessage = 'Signing in...';
 
   final AuthService _authService = AuthService();
+  final DriverService _driverService = DriverService.instance;
+  final ApiService _apiService = ApiService.instance;
 
   @override
   void initState() {
@@ -49,23 +57,44 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   Future<void> _handleGoogleSignIn() async {
     setState(() {
       _isLoading = true;
+      _loadingMessage = 'Signing in with Google...';
     });
 
     try {
+      // Step 1: Firebase Authentication
       final userCredential = await _authService.signInWithGoogle();
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
-
       if (userCredential != null) {
-        // Navigate to home screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        setState(() {
+          _loadingMessage = 'Checking driver status...';
+        });
+
+        // Step 2: Check driver status via REST API
+        final driverStatus = await _apiService.checkDriverStatus();
+
+        if (!mounted) return;
+
+        // Step 3: Navigate based on driver status
+        if (driverStatus != null && driverStatus['isDriver'] == true) {
+          // Driver sudah terdaftar → langsung ke HomeScreen
+          debugPrint('Driver registered, navigating to HomeScreen');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        } else {
+          // Driver belum terdaftar → WAJIB ke DriverRegistrationScreen dulu
+          debugPrint('Driver not registered, navigating to DriverRegistrationScreen');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DriverRegistrationScreen()),
+          );
+        }
       } else {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
         // Show error dialog
         _showErrorDialog('Sign in failed. Please try again.');
       }
@@ -76,8 +105,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         _isLoading = false;
       });
 
-      // Show error dialog
-      _showErrorDialog('Sign in failed: ${e.toString()}');
+      // Show error using UIHelper instead of dialog
+      UIHelper.showSnackBar(context, 'Sign in failed: ${e.toString()}', backgroundColor: AppColors.primaryRed);
     }
   }
 
@@ -111,41 +140,79 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Spacer(),
+      body: Stack(
+        children: [
+          // Main content
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Spacer(),
 
-                      // Logo and Title Section
-                      _buildHeader(),
+                          // Logo and Title Section
+                          _buildHeader(),
 
-                      const Spacer(),
+                          const Spacer(),
 
-                      // Buttons Section
-                      _buildButtons(),
+                          // Buttons Section
+                          _buildButtons(),
 
-                      const Spacer(),
+                          const Spacer(),
 
-                      // Footer
-                      _buildFooter(),
-                    ],
-                  ),
-                ),
-              );
-            },
+                          // Footer
+                          _buildFooter(),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+          // Loading overlay
+          if (_isLoading)
+            Container(
+              color: Colors.black87,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _loadingMessage,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Please wait...',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -315,7 +382,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         ),
         const SizedBox(height: 16),
         Text(
-          'Version 1.0.0',
+          'Version ${AppConfig.appVersion}',
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withOpacity(0.4),

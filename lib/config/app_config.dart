@@ -4,7 +4,7 @@ import '../constants/hive_constants.dart';
 class AppConfig {
   // WebSocket server URL
   // Updated to the current ngrok URL
-  static const String defaultWebSocketUrl = 'wss://0564-2404-c0-3467-e515-7f6f-e350-75ce-759e.ngrok-free.app/ws';
+  static const String defaultWebSocketUrl = 'wss://3b52-2404-c0-3194-2aad-a2de-acf2-bd3d-3ce4.ngrok-free.app/ws';
 
   // App version
   static const String appVersion = '1.0.0';

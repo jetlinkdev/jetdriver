@@ -6,6 +6,7 @@ class IntentConstants {
   static const String driverArrived = 'driver_arrived';
   static const String completeTrip = 'complete_trip';
   static const String auth = 'auth';
+  static const String completeProfile = 'complete_profile';
   static const String driverRegistration = 'driver_registration';
   static const String checkDriverStatus = 'check_driver_status';
   static const String getMyBids = 'get_my_bids';

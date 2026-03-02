@@ -7,12 +7,11 @@ import '../models/order.dart';
 import '../services/auth_service.dart';
 import '../services/driver_service.dart';
 import '../utils/logger.dart';
+import '../utils/helper.dart';
 import '../widgets/order_card.dart';
 import '../widgets/bid_bottom_sheet.dart';
-import '../widget/profile_completion_dialog.dart';
 import '../widgets/earnings_card.dart';
 import 'settings_screen.dart';
-import 'driver_registration_screen.dart';
 import 'welcome_screen.dart';
 
 /// Main home screen for driver app
@@ -31,8 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
 
   int _selectedIndex = 0;
-  bool _needsProfileCompletion = false;
-  bool _hasShownProfileDialog = false;
+  bool _isSubmittingBid = false;
+  bool _isProcessingArrival = false;
+  bool _isProcessingCompletion = false;
 
   @override
   void initState() {
@@ -59,15 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Send auth to backend
       await _driverService.sendAuth();
 
-      // Listen for auth_profile_needed response
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted && !_needsProfileCompletion && !_hasShownProfileDialog) {
-          // Check if we need to show profile completion dialog
-          // This will be triggered by the auth_profile_needed intent from server
-          _checkAndShowProfileDialog();
-        }
-      });
-
       // Check driver registration status after a short delay
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -78,97 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _checkAndShowProfileDialog() {
-    // Show profile completion dialog if needed
-    // This is triggered when backend sends auth_profile_needed
-    if (!_hasShownProfileDialog && mounted) {
-      _showProfileCompletionDialog();
-    }
-  }
-
   void _checkAndShowRegistrationDialog() {
-    // Check if driver is registered after auth response
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted && !_driverService.isDriverRegistered) {
-        _showRegistrationDialog();
-      }
-    });
-  }
-
-  void _showRegistrationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'Complete Registration',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'You need to register your vehicle information before accepting rides.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DriverRegistrationScreen(),
-                ),
-              );
-              if (result == true && mounted) {
-                _logger.success('Driver registration completed');
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
-            child: const Text('Register Now'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showProfileCompletionDialog() {
-    setState(() {
-      _hasShownProfileDialog = true;
-    });
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => ProfileCompletionDialog(
-        onComplete: ({required String email, required String displayName, required String phoneNumber}) {
-          // Send complete_profile intent to backend
-          _sendCompleteProfile(email: email, displayName: displayName, phoneNumber: phoneNumber);
-          Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
-
-  void _sendCompleteProfile({required String email, required String displayName, required String phoneNumber}) {
-    final user = _authService.currentUser;
-    if (user == null) {
-      _logger.error('No authenticated user for complete profile');
-      return;
-    }
-
-    final profileData = {
-      'intent': 'complete_profile',
-      'data': {
-        'uid': user.uid,
-        'email': email,
-        'displayName': displayName,
-        'phoneNumber': phoneNumber,
-      },
-      'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    };
-
-    _driverService.sendJson(profileData);
-    _logger.info('Complete profile sent to backend');
+    // DEPRECATED: Registration now handled at WelcomeScreen
+    // User should never reach here without being registered
+    debugPrint('HomeScreen loaded: isDriverRegistered=${_driverService.isDriverRegistered}');
   }
 
   Future<void> _handleLogout() async {
@@ -190,15 +94,21 @@ class _HomeScreenState extends State<HomeScreen> {
       final bidPrice = result['bidPrice'] as double;
       final etaMinutes = result['etaMinutes'] as int;
 
-      _driverService.submitBid(
+      setState(() => _isSubmittingBid = true);
+
+      final success = await _driverService.submitBid(
         orderId: order.id,
         bidPrice: bidPrice,
         etaMinutes: etaMinutes,
       );
 
-      _logger.success(
-        '${UIStrings.bidSubmittedLog}${bidPrice.toStringAsFixed(0)}${UIStrings.etaMinutes}$etaMinutes${UIStrings.min}',
-      );
+      setState(() => _isSubmittingBid = false);
+
+      if (success) {
+        _logger.success('Bid accepted for order #${order.id}');
+      } else {
+        _logger.warning('Bid submitted but not accepted for order #${order.id}');
+      }
     }
   }
 
@@ -237,8 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showArrivalConfirmation(Order order) {
-    showDialog(
+  void _showArrivalConfirmation(Order order) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
@@ -262,16 +172,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true && mounted) {
-        _driverService.sendArrival(order.id);
-        _logger.success('${UIStrings.arrivalNotificationSent}${order.id}');
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isProcessingArrival = true);
+
+      final success = await _driverService.sendArrival(order.id);
+
+      setState(() => _isProcessingArrival = false);
+
+      if (success && mounted) {
+        _logger.success('Arrival confirmed for order #${order.id}');
+      } else if (mounted) {
+        _logger.error('Failed to confirm arrival for order #${order.id}');
       }
-    });
+    }
   }
 
-  void _showCompleteConfirmation(Order order) {
-    showDialog(
+  void _showCompleteConfirmation(Order order) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
@@ -297,12 +216,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true && mounted) {
-        _driverService.sendTripCompletion(order.id);
-        _logger.success('${UIStrings.tripCompletionSent}${order.id}');
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isProcessingCompletion = true);
+
+      final success = await _driverService.sendTripCompletion(order.id);
+
+      setState(() => _isProcessingCompletion = false);
+
+      if (success && mounted) {
+        _logger.success('Trip completed for order #${order.id}');
+      } else if (mounted) {
+        _logger.error('Failed to complete trip for order #${order.id}');
       }
-    });
+    }
   }
 
   void _navigateToSettings() {
@@ -769,19 +697,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         value ? 'Driver is now online' : 'Driver is now offline',
                       );
                       if (mounted) {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              value ? 'You are now online' : 'You are now offline',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            backgroundColor: value
-                                ? AppColors.primaryGreen
-                                : Colors.red,
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        UIHelper.showSnackBar(
+                          context,
+                          value ? 'You are now online' : 'You are now offline',
+                          backgroundColor: value ? AppColors.primaryGreen : Colors.red,
                         );
                       }
                     },

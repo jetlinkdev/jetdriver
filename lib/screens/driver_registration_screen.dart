@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../services/api_service.dart';
 import '../services/driver_service.dart';
+import '../services/auth_service.dart';
+import '../utils/helper.dart';
 import '../utils/logger.dart';
+import 'home_screen.dart';
 
 /// Driver registration screen for new drivers
+/// Collects: Name, Email (from Firebase), Phone, Vehicle Type, Vehicle Plate
 class DriverRegistrationScreen extends StatefulWidget {
   const DriverRegistrationScreen({super.key});
 
@@ -14,19 +19,39 @@ class DriverRegistrationScreen extends StatefulWidget {
 
 class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _displayNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
   final _vehicleTypeController = TextEditingController();
   final _vehiclePlateController = TextEditingController();
-  final _phoneNumberController = TextEditingController();
   final _logger = Logger.instance;
   final _driverService = DriverService.instance;
+  final _authService = AuthService();
+  final _apiService = ApiService.instance;
 
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _preFillUserData();
+  }
+
+  void _preFillUserData() {
+    final user = _authService.currentUser;
+    if (user != null) {
+      _displayNameController.text = user.displayName ?? '';
+      _emailController.text = user.email ?? '';
+    }
+  }
+
+  @override
   void dispose() {
+    _displayNameController.dispose();
+    _emailController.dispose();
+    _phoneNumberController.dispose();
     _vehicleTypeController.dispose();
     _vehiclePlateController.dispose();
-    _phoneNumberController.dispose();
     super.dispose();
   }
 
@@ -40,48 +65,54 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     });
 
     try {
-      final success = await _driverService.registerDriver(
+      // Register driver via REST API
+      final success = await _apiService.registerDriver(
         vehicleType: _vehicleTypeController.text.trim(),
         vehiclePlate: _vehiclePlateController.text.trim().toUpperCase(),
         phoneNumber: _phoneNumberController.text.trim(),
+        displayName: _displayNameController.text.trim(),
+        email: _emailController.text.trim(),
       );
 
-      if (success && mounted) {
+      if (!mounted) return;
+
+      if (success) {
         _logger.success('Driver registration successful');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registration successful! You can now accept rides.',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: AppColors.primaryGreen,
-          ),
+
+        // Update driver service state
+        _driverService.handleDriverRegistrationResponse({
+          'vehicleType': _vehicleTypeController.text.trim(),
+          'vehiclePlate': _vehiclePlateController.text.trim().toUpperCase(),
+          'phoneNumber': _phoneNumberController.text.trim(),
+          'displayName': _displayNameController.text.trim(),
+          'email': _emailController.text.trim(),
+        });
+
+        // Show success snackbar using UIHelper
+        UIHelper.showSnackBar(
+          context,
+          'Registration successful! You can now accept rides.',
+          backgroundColor: AppColors.primaryGreen,
         );
-        Navigator.of(context).pop(true);
-      } else if (mounted) {
+
+        // Navigate after snackbar is visible
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (mounted) {
+          // Navigate dengan fresh HomeScreen
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
+          );
+        }
+      } else {
         _logger.error('Driver registration failed');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registration failed. Please try again.',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: AppColors.primaryRed,
-          ),
-        );
+        UIHelper.showSnackBar(context, 'Registration failed. Please try again.', backgroundColor: AppColors.primaryRed);
       }
     } catch (e) {
       _logger.error('Registration error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'An error occurred. Please try again.',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: AppColors.primaryRed,
-          ),
-        );
+        UIHelper.showSnackBar(context, 'An error occurred. Please try again.', backgroundColor: AppColors.primaryRed);
       }
     } finally {
       if (mounted) {
@@ -127,12 +158,12 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter your vehicle information to start accepting rides',
+                  'Complete your profile and vehicle information to start accepting rides',
                   style: TextStyle(fontSize: 14, color: Colors.white54),
                 ),
                 const SizedBox(height: 32),
 
-                // Vehicle Icon
+                // Profile Icon
                 Center(
                   child: Container(
                     width: 120,
@@ -142,13 +173,80 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.directions_car,
+                      Icons.person_add,
                       size: 64,
                       color: AppColors.primaryGreen,
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
+
+                // Display Name Field
+                const Text(
+                  'Full Name',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _displayNameController,
+                  decoration: InputDecoration(
+                    hintText: 'Your full name',
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    filled: true,
+                    fillColor: AppColors.cardBackground,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.person,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Email Field (readonly from Firebase)
+                const Text(
+                  'Email',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailController,
+                  enabled: false,
+                  decoration: InputDecoration(
+                    hintText: 'Email from Google account',
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    filled: true,
+                    fillColor: AppColors.cardBackground.withOpacity(0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.email,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white54),
+                ),
+                const SizedBox(height: 24),
 
                 // Phone Number Field
                 const Text(
@@ -286,7 +384,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Make sure your vehicle information is accurate. This will be shown to customers.',
+                          'Make sure your information is accurate. This will be shown to customers.',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.8),
