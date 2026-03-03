@@ -121,6 +121,36 @@ class DriverService extends ChangeNotifier {
     _driverStatus = status;
     await _saveSettings();
     notifyListeners();
+    
+    // Notify backend about status change
+    _sendDriverStatusUpdate(status);
+  }
+
+  /// Send driver status update to backend
+  void _sendDriverStatusUpdate(DriverStatus status) {
+    String statusString;
+    switch (status) {
+      case DriverStatus.available:
+        statusString = 'available';
+        break;
+      case DriverStatus.busy:
+        statusString = 'busy';
+        break;
+      case DriverStatus.offline:
+        statusString = 'offline';
+        break;
+    }
+    
+    final statusData = {
+      'intent': 'update_driver_status',
+      'data': {
+        'status': statusString,
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    
+    _wsService.sendJson(statusData);
+    Logger.instance.info('Driver status updated to: $statusString');
   }
 
   /// Connect to WebSocket server
