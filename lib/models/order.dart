@@ -20,7 +20,8 @@ class Order {
   final DateTime? estimatedArrivalTime;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+  final String? routeCoordinates; // Route coordinates from OSRM (stringified JSON array)
+
   // Local state for UI (not from backend)
   final String? bidStatus; // pending, accepted, rejected (for tracking bid status locally)
 
@@ -43,6 +44,7 @@ class Order {
     this.estimatedArrivalTime,
     required this.createdAt,
     required this.updatedAt,
+    this.routeCoordinates,
     this.bidStatus,
   });
 
@@ -75,6 +77,7 @@ class Order {
       updatedAt: json['updatedAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch((json['updatedAt'] as int) * 1000)
           : DateTime.now(),
+      routeCoordinates: json['routeCoordinates'] as String?,
       bidStatus: json['bidStatus'] as String?,
     );
   }
@@ -97,9 +100,10 @@ class Order {
       'status': status,
       'fare': fare,
       'bidPrice': bidPrice,
-      'estimatedArrivalTime': estimatedArrivalTime != null 
-          ? estimatedArrivalTime!.millisecondsSinceEpoch ~/ 1000 
+      'estimatedArrivalTime': estimatedArrivalTime != null
+          ? estimatedArrivalTime!.millisecondsSinceEpoch ~/ 1000
           : null,
+      'routeCoordinates': routeCoordinates,
       'createdAt': createdAt.millisecondsSinceEpoch ~/ 1000,
       'updatedAt': updatedAt.millisecondsSinceEpoch ~/ 1000,
     };
@@ -125,6 +129,7 @@ class Order {
     DateTime? estimatedArrivalTime,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? routeCoordinates,
     String? bidStatus,
   }) {
     return Order(
@@ -146,6 +151,7 @@ class Order {
       estimatedArrivalTime: estimatedArrivalTime ?? this.estimatedArrivalTime,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      routeCoordinates: routeCoordinates ?? this.routeCoordinates,
       bidStatus: bidStatus ?? this.bidStatus,
     );
   }

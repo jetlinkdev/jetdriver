@@ -20,7 +20,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -36,7 +36,7 @@ class ConnectionStatusWidget extends StatelessWidget {
                   color: _getStatusColor(status),
                   boxShadow: [
                     BoxShadow(
-                      color: _getStatusColor(status).withOpacity(0.5),
+                      color: _getStatusColor(status).withValues(alpha: 0.5),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -62,7 +62,7 @@ class ConnectionStatusWidget extends StatelessWidget {
                       horizontal: 12,
                       vertical: 8,
                     ),
-                    backgroundColor: Colors.white.withOpacity(0.1),
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

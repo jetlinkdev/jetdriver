@@ -30,13 +30,13 @@ class EarningsCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF4CAF50).withOpacity(0.2),
-            const Color(0xFF4CAF50).withOpacity(0.05),
+            const Color(0xFF4CAF50).withValues(alpha: 0.2),
+            const Color(0xFF4CAF50).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF4CAF50).withOpacity(0.3),
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -75,7 +75,7 @@ class EarningsCard extends StatelessWidget {
               Container(
                 width: 1,
                 height: 40,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
               ),
               Expanded(
                 child: _buildStatItem(
@@ -88,7 +88,7 @@ class EarningsCard extends StatelessWidget {
               Container(
                 width: 1,
                 height: 40,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
               ),
               Expanded(
                 child: _buildStatItem(

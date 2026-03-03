@@ -24,12 +24,12 @@ class OnlineToggle extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isOnline
               ? [
-                  const Color(0xFF4CAF50).withOpacity(0.2),
-                  const Color(0xFF4CAF50).withOpacity(0.05),
+                  const Color(0xFF4CAF50).withValues(alpha: 0.2),
+                  const Color(0xFF4CAF50).withValues(alpha: 0.05),
                 ]
               : [
-                  Colors.red.withOpacity(0.2),
-                  Colors.red.withOpacity(0.05),
+                  Colors.red.withValues(alpha: 0.2),
+                  Colors.red.withValues(alpha: 0.05),
                 ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -72,7 +72,7 @@ class OnlineToggle extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: (isOnline ? const Color(0xFF4CAF50) : Colors.red)
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
@@ -85,7 +85,7 @@ class OnlineToggle extends StatelessWidget {
                   value ? DriverStatus.available : DriverStatus.offline,
                 );
               },
-              activeColor: const Color(0xFF4CAF50),
+              activeThumbColor: const Color(0xFF4CAF50),
               activeTrackColor: Colors.green.shade200,
             ),
           ),

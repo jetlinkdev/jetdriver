@@ -8,6 +8,7 @@ import '../constants/api_constants.dart';
 import '../models/order.dart';
 import '../services/websocket_service.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import '../utils/logger.dart';
 
 /// Driver status enum
@@ -40,6 +41,7 @@ class DriverService extends ChangeNotifier {
 
   // WebSocket service
   final WebSocketService _wsService = WebSocketService.instance;
+  final ApiService _apiService = ApiService.instance;
   StreamSubscription? _messageSubscription;
 
   // Anchor variables untuk WebSocket response handling
@@ -350,7 +352,7 @@ class DriverService extends ChangeNotifier {
           _orders.add(order);
         }
         
-        debugPrint('Order #${orderId} synced with status: ${data['ui_state']}');
+        debugPrint('Order #$orderId synced with status: ${data['ui_state']}');
         notifyListeners();
       }
       
@@ -383,7 +385,7 @@ class DriverService extends ChangeNotifier {
     if (data is Map<String, dynamic>) {
       final orderId = data['order_id'] as int?;
       final uiState = data['ui_state'] as String?;
-      debugPrint('Existing order found: #${orderId} with state: ${uiState}');
+      debugPrint('Existing order found: #$orderId with state: $uiState');
       
       if (orderId != null) {
         // Update or create order in local state
@@ -581,7 +583,7 @@ class DriverService extends ChangeNotifier {
     }
   }
 
-  /// Submit bid for an order
+  /// Submit bid for an order via REST API
   Future<bool> submitBid({
     required int orderId,
     required double bidPrice,
@@ -592,50 +594,42 @@ class DriverService extends ChangeNotifier {
       return false;
     }
 
-    // Set anchor BEFORE sending
-    _isWaitingForBidResponse = true;
-    _currentBidOrderId = orderId;
-    _bidResponseCompleter = Completer<Map<String, dynamic>>();
+    debugPrint('Submitting bid for order #$orderId: price=$bidPrice, eta=$etaMinutes min');
 
-    _wsService.sendSubmitBid(
-      orderId: orderId,
-      driverId: _driverId,
-      bidPrice: bidPrice,
-      etaMinutes: etaMinutes,
-    );
-
-    debugPrint('Bid submitted for order #$orderId (waiting for response...)');
-
-    // Wait for response (bid_accepted, bid_rejected, or timeout)
     try {
-      final response = await _bidResponseCompleter!.future.timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          debugPrint('Bid response timeout after 15s');
-          _isWaitingForBidResponse = false;
-          return {'status': 'timeout'};
-        },
+      // Submit bid via REST API
+      final result = await _apiService.submitBid(
+        orderId: orderId,
+        bidPrice: bidPrice,
+        etaMinutes: etaMinutes,
       );
 
-      _isWaitingForBidResponse = false;
-      final status = response['status'] as String? ?? 'pending';
-      debugPrint('Bid response received: $status');
+      if (result != null) {
+        final bidId = result['bidId'] as int?;
+        final status = result['status'] as String? ?? 'pending';
+        
+        debugPrint('Bid submitted successfully: bidId=$bidId, status=$status');
 
-      // Update local state based on response
-      final orderIndex = _orders.indexWhere((o) => o.id == orderId);
-      if (orderIndex != -1) {
-        _orders[orderIndex] = _orders[orderIndex].copyWith(
-          driverId: _driverId,
-          bidPrice: bidPrice,
-          bidStatus: status,
-        );
-        notifyListeners();
+        // Update local state
+        final orderIndex = _orders.indexWhere((o) => o.id == orderId);
+        if (orderIndex != -1) {
+          _orders[orderIndex] = _orders[orderIndex].copyWith(
+            driverId: _driverId,
+            bidPrice: bidPrice,
+            bidStatus: status,
+          );
+          notifyListeners();
+        }
+
+        // Listen for WebSocket updates for bid acceptance/rejection
+        // The server will broadcast bid_accepted or bid_rejected via WebSocket
+        return status == 'accepted';
+      } else {
+        debugPrint('Bid submission failed - no response from server');
+        return false;
       }
-
-      return status == 'accepted';
     } catch (e) {
-      debugPrint('Bid error: $e');
-      _isWaitingForBidResponse = false;
+      debugPrint('Bid submission error: $e');
       return false;
     }
   }

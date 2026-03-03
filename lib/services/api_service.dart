@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../utils/logger.dart';
 
 /// API Service for REST API communication with backend
@@ -11,12 +12,9 @@ class ApiService {
   ApiService._();
 
   final _logger = Logger.instance;
-  
-  // Backend API base URL
-  // For Android emulator: use 10.0.2.2 instead of localhost
-  // For iOS simulator: use localhost
-  // For physical device: use your computer's IP address
-  String baseUrl = 'http://10.0.2.2:8080/api';
+
+  // Backend API base URL from AppConfig
+  String baseUrl = AppConfig.baseUrl;
 
   /// Get Firebase ID token
   Future<String?> _getIdToken() async {
@@ -149,7 +147,7 @@ class ApiService {
   Future<Map<String, dynamic>?> verifyAuth() async {
     try {
       final response = await _request('POST', '/auth/verify');
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -164,6 +162,100 @@ class ApiService {
       }
     } catch (e) {
       _logger.error('Verify auth error: $e');
+      return null;
+    }
+  }
+
+  /// Submit a bid for an order via REST API
+  /// Returns bid response data if successful
+  Future<Map<String, dynamic>?> submitBid({
+    required int orderId,
+    required double bidPrice,
+    required int etaMinutes,
+  }) async {
+    try {
+      final response = await _request(
+        'POST',
+        '/bids/submit',
+        body: {
+          'orderId': orderId,
+          'bidPrice': bidPrice,
+          'etaMinutes': etaMinutes,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          _logger.success('Bid submitted successfully');
+          return data['data'] as Map<String, dynamic>;
+        } else {
+          _logger.error('Bid submission failed: ${data['error']}');
+          return null;
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        _logger.error('Bid submission failed: ${data['error'] ?? response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      _logger.error('Bid submission error: $e');
+      return null;
+    }
+  }
+
+  /// Get all bids placed by the current driver
+  /// Returns list of bids with order details
+  Future<List<Map<String, dynamic>>?> getMyBids() async {
+    try {
+      final response = await _request('GET', '/bids/my');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          final bidsData = data['data']['bids'] as List?;
+          if (bidsData != null) {
+            return bidsData.map((e) => e as Map<String, dynamic>).toList();
+          }
+          return [];
+        } else {
+          _logger.error('Get my bids failed: ${data['error']}');
+          return null;
+        }
+      } else {
+        _logger.error('Get my bids failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      _logger.error('Get my bids error: $e');
+      return null;
+    }
+  }
+
+  /// Get all bids for a specific order (only accessible by order owner)
+  /// Returns list of bids from different drivers
+  Future<List<Map<String, dynamic>>?> getOrderBids(int orderId) async {
+    try {
+      final response = await _request('GET', '/bids/order/$orderId');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          final bidsData = data['data']['bids'] as List?;
+          if (bidsData != null) {
+            return bidsData.map((e) => e as Map<String, dynamic>).toList();
+          }
+          return [];
+        } else {
+          _logger.error('Get order bids failed: ${data['error']}');
+          return null;
+        }
+      } else {
+        _logger.error('Get order bids failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      _logger.error('Get order bids error: $e');
       return null;
     }
   }

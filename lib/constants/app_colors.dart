@@ -76,16 +76,16 @@ class AppColors {
   static const Color shadowRed = Color(0x66FF4444);
   static const Color shadowBlack = Colors.black26;
 
-  // Helper methods for opacity
-  static Color withOpacity(Color color, double opacity) {
-    return color.withOpacity(opacity);
+  // Helper methods for opacity (Material 3 compliant)
+  static Color withValues(Color color, double alpha) {
+    return color.withValues(alpha: alpha);
   }
 
-  static Color getGradientGreenStart(double opacity) {
-    return gradientGreenStrong.withOpacity(opacity);
+  static Color getGradientGreenStart(double alpha) {
+    return gradientGreenStrong.withValues(alpha: alpha);
   }
 
-  static Color getGradientGreenEnd(double opacity) {
-    return gradientGreenLight.withOpacity(opacity * 0.25);
+  static Color getGradientGreenEnd(double alpha) {
+    return gradientGreenLight.withValues(alpha: alpha * 0.25);
   }
 }

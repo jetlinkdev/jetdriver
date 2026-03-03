@@ -21,7 +21,7 @@ class DriverProfileCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -31,7 +31,7 @@ class DriverProfileCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withOpacity(0.2),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
               shape: BoxShape.circle,
               border: Border.all(
                 color: const Color(0xFF4CAF50),

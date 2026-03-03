@@ -10,6 +10,7 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onDeclinePressed;
   final VoidCallback? onArrivePressed;
   final VoidCallback? onCompletePressed;
+  final VoidCallback? onViewTripPressed;
   final bool isBidSubmitted;
 
   const OrderCard({
@@ -19,6 +20,7 @@ class OrderCard extends StatelessWidget {
     this.onDeclinePressed,
     this.onArrivePressed,
     this.onCompletePressed,
+    this.onViewTripPressed,
     this.isBidSubmitted = false,
   });
 
@@ -135,7 +137,7 @@ class OrderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.2),
+        color: statusColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: statusColor, width: 1.5),
       ),
@@ -337,44 +339,73 @@ class OrderCard extends StatelessWidget {
     return _buildBidActions();
   }
 
+  Widget _buildViewTripDetailsButton() {
+    // Show "View Trip Details" button for all orders (except completed)
+    if (onViewTripPressed == null) return const SizedBox.shrink();
+    
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onViewTripPressed,
+        icon: const Icon(Icons.map, size: 18),
+        label: const Text('View Trip Details'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.blue,
+          side: const BorderSide(color: Colors.blue),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBidActions() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (onDeclinePressed != null)
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onDeclinePressed,
-                icon: const Icon(Icons.close, size: 18),
-                label: const Text('Decline'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+          _buildViewTripDetailsButton(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (onDeclinePressed != null)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onDeclinePressed,
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Decline'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          if (onDeclinePressed != null) const SizedBox(width: 8),
-          if (onBidPressed != null)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: onBidPressed,
-                icon: const Icon(Icons.attach_money, size: 18),
-                label: const Text('Submit Bid'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              if (onDeclinePressed != null) const SizedBox(width: 8),
+              if (onBidPressed != null)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onBidPressed,
+                    icon: const Icon(Icons.attach_money, size: 18),
+                    label: const Text('Submit Bid'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+            ],
+          ),
         ],
       ),
     );
@@ -383,23 +414,30 @@ class OrderCard extends StatelessWidget {
   Widget _buildBidPendingStatus() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.hourglass_empty,
-            color: Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Bid submitted - Waiting for customer',
-              style: TextStyle(
-                fontSize: 14,
+          Row(
+            children: [
+              const Icon(
+                Icons.hourglass_empty,
                 color: Colors.orange,
+                size: 20,
               ),
-            ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Bid submitted - Waiting for customer',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          _buildViewTripDetailsButton(),
         ],
       ),
     );
@@ -408,23 +446,30 @@ class OrderCard extends StatelessWidget {
   Widget _buildBidRejectedStatus() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.close,
-            color: Colors.red,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Bid declined by customer',
-              style: TextStyle(
-                fontSize: 14,
+          Row(
+            children: [
+              const Icon(
+                Icons.close,
                 color: Colors.red,
+                size: 20,
               ),
-            ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Bid declined by customer',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          _buildViewTripDetailsButton(),
         ],
       ),
     );
@@ -433,10 +478,15 @@ class OrderCard extends StatelessWidget {
   Widget _buildAcceptedStatus() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
+          // View Trip Details button
+          _buildViewTripDetailsButton(),
+          const SizedBox(height: 8),
+          // I'm Here button
           if (onArrivePressed != null)
-            Expanded(
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: onArrivePressed,
                 icon: const Icon(Icons.location_on, size: 18),

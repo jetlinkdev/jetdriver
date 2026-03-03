@@ -30,7 +30,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _bidAmountController;
   late TextEditingController _etaController;
-  bool _isLoading = false;
+  final _isLoading = false;
 
   @override
   void initState() {
@@ -124,7 +124,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -216,7 +216,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
           color: Colors.white38,
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -224,7 +224,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -272,7 +272,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
           color: Colors.white38,
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -280,7 +280,7 @@ class _BidBottomSheetContentState extends State<_BidBottomSheetContent> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
         focusedBorder: OutlineInputBorder(
