@@ -4,8 +4,7 @@ import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/helper.dart';
-import 'home_screen.dart';
-import 'driver_registration_screen.dart';
+import '../routes/app_routes.dart';
 
 /// Welcome screen for users to choose login or register
 class WelcomeScreen extends StatefulWidget {
@@ -78,15 +77,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         if (driverStatus != null && driverStatus['isDriver'] == true) {
           // Driver sudah terdaftar → langsung ke HomeScreen
           debugPrint('Driver registered, navigating to HomeScreen');
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
+          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
         } else {
           // Driver belum terdaftar → WAJIB ke DriverRegistrationScreen dulu
           debugPrint('Driver not registered, navigating to DriverRegistrationScreen');
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const DriverRegistrationScreen()),
-          );
+          Navigator.of(context).pushReplacementNamed(AppRoutes.registration);
         }
       } else {
         if (!mounted) return;

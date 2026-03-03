@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jetdriver/screens/splash_screen.dart';
 import 'package:jetdriver/utils/logger.dart';
 import 'package:provider/provider.dart';
+import 'routes/app_routes.dart';
 
 class JetdriverApp extends StatelessWidget {
   const JetdriverApp({super.key});
@@ -28,7 +28,8 @@ class JetdriverApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
         ),
-        home: const SplashScreen(),
+        initialRoute: AppRoutes.splash,
+        onGenerateRoute: AppRouter.generateRoute,
       ),
     );
   }

@@ -11,9 +11,7 @@ import '../utils/helper.dart';
 import '../widgets/order_card.dart';
 import '../widgets/bid_bottom_sheet.dart';
 import '../widgets/earnings_card.dart';
-import 'settings_screen.dart';
-import 'welcome_screen.dart';
-import 'trip_map_screen.dart';
+import '../routes/app_routes.dart';
 
 /// Main home screen for driver app
 class HomeScreen extends StatefulWidget {
@@ -78,11 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _logger.info(UIStrings.userLoggedOut);
 
     if (mounted) {
-      // Navigate to welcome screen after logout
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-        (route) => false,
-      );
+      // Navigate to welcome screen using named route
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.welcome, (route) => false);
     }
   }
 
@@ -126,12 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Navigate to trip map screen
   void _navigateToTripMap(Order order) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TripMapScreen(order: order),
-      ),
-    );
+    Navigator.of(context).pushNamed(AppRoutes.tripMap, arguments: order);
   }
 
   /// Show loading dialog with spinner
@@ -301,10 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
-    );
+    Navigator.of(context).pushNamed(AppRoutes.settings);
   }
 
   @override

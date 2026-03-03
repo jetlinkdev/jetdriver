@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
-import '../screens/welcome_screen.dart';
-import '../screens/home_screen.dart';
+import '../routes/app_routes.dart';
 
 /// Splash screen to check authentication status
 class SplashScreen extends StatefulWidget {
@@ -20,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animations
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -52,14 +51,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     if (user != null) {
       // User is logged in, navigate to home
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
     } else {
       // User is not logged in, navigate to welcome screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-      );
+      Navigator.of(context).pushReplacementNamed(AppRoutes.welcome);
     }
   }
 
