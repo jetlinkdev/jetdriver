@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:async';
 import 'dart:convert';
 import '../models/order.dart';
 import '../constants/api_constants.dart';
+import '../services/driver_service.dart';
+import '../services/websocket_service.dart';
+import '../constants/intent_constants.dart';
 
 /// Trip map screen showing route from pickup to destination
 class TripMapScreen extends StatefulWidget {
@@ -19,11 +23,100 @@ class _TripMapScreenState extends State<TripMapScreen> {
   List<LatLng> routeCoordinates = [];
   bool isLoadingRoute = true;
   String? errorMessage;
+  
+  StreamSubscription? _messageSubscription;
+  final _driverService = DriverService.instance;
+  final _wsService = WebSocketService.instance;
 
   @override
   void initState() {
     super.initState();
     _parseRouteCoordinates();
+    _setupWebSocketListener();
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Setup WebSocket message listener for order cancellation
+  void _setupWebSocketListener() {
+    _messageSubscription = _wsService.messageStream.listen((message) {
+      if (message.intent == IntentConstants.orderCancelled) {
+        _handleOrderCancelled(message.data);
+      }
+    });
+  }
+
+  /// Handle order cancelled by customer
+  void _handleOrderCancelled(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final orderId = data['order_id'] as int?;
+      
+      // Check if this is the current order being viewed
+      if (orderId == widget.order.id) {
+        // Show warning dialog
+        _showOrderCancelledDialog();
+      }
+    }
+  }
+
+  /// Show order cancelled warning dialog
+  Future<void> _showOrderCancelledDialog() async {
+    // Prevent multiple dialogs from showing
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          icon: const Icon(
+            Icons.cancel_outlined,
+            color: Colors.red,
+            size: 48,
+          ),
+          title: const Text(
+            'Order Dibatalkan',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'Customer telah membatalkan order ini.\n\nAnda akan kembali ke home screen dalam beberapa detik.',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _navigateToHome();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Auto close dialog and navigate back after 3 seconds
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(); // Close dialog
+      _navigateToHome();
+    }
+  }
+
+  /// Navigate back to home screen
+  void _navigateToHome() {
+    // Pop all screens until we reach home
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   /// Parse route coordinates from order (already stored in database)
