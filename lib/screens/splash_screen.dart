@@ -89,11 +89,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       width: 150,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withOpacity(0.2),
+                        color: AppColors.primaryGreen.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryGreen.withOpacity(0.3),
+                            color: AppColors.primaryGreen.withValues(alpha: 0.3),
                             blurRadius: 30,
                             spreadRadius: 10,
                           ),
@@ -108,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // App Name
                     const Text(
                       'Jetdriver',
@@ -120,13 +120,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Tagline
                     Text(
                       'Drive & Earn',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         letterSpacing: 1,
                       ),
                     ),
@@ -137,13 +137,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Loading Text
                     Text(
                       'Loading...',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
                   ],

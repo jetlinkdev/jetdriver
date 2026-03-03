@@ -3,7 +3,6 @@ import '../config/app_config.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/driver_service.dart';
 import '../utils/helper.dart';
 import 'home_screen.dart';
 import 'driver_registration_screen.dart';
@@ -24,7 +23,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   String _loadingMessage = 'Signing in...';
 
   final AuthService _authService = AuthService();
-  final DriverService _driverService = DriverService.instance;
   final ApiService _apiService = ApiService.instance;
 
   @override
@@ -225,11 +223,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            color: AppColors.primaryGreen.withOpacity(0.2),
+            color: AppColors.primaryGreen.withValues(alpha: 0.2),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryGreen.withOpacity(0.3),
+                color: AppColors.primaryGreen.withValues(alpha: 0.3),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),
@@ -261,7 +259,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           'Drive & Earn with Jetlink',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
             letterSpacing: 1,
           ),
           textAlign: TextAlign.center,
@@ -327,7 +325,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           'By continuing, you agree to our',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
           ),
           textAlign: TextAlign.center,
         ),
@@ -378,14 +376,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     return Column(
       children: [
         Divider(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
         const SizedBox(height: 16),
         Text(
           'Version ${AppConfig.appVersion}',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.4),
+            color: Colors.white.withValues(alpha: 0.4),
           ),
         ),
         const SizedBox(height: 4),
@@ -393,7 +391,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           '© 2024 Jetlink. All rights reserved.',
           style: TextStyle(
             fontSize: 11,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
         ),
       ],

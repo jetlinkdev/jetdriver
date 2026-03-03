@@ -13,6 +13,7 @@ import '../widgets/bid_bottom_sheet.dart';
 import '../widgets/earnings_card.dart';
 import 'settings_screen.dart';
 import 'welcome_screen.dart';
+import 'trip_map_screen.dart';
 
 /// Main home screen for driver app
 class HomeScreen extends StatefulWidget {
@@ -30,9 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
 
   int _selectedIndex = 0;
-  bool _isSubmittingBid = false;
-  bool _isProcessingArrival = false;
-  bool _isProcessingCompletion = false;
 
   @override
   void initState() {
@@ -94,7 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final bidPrice = result['bidPrice'] as double;
       final etaMinutes = result['etaMinutes'] as int;
 
-      setState(() => _isSubmittingBid = true);
+      // Show loading dialog
+      _showLoadingDialog('Submitting your bid...');
 
       final success = await _driverService.submitBid(
         orderId: order.id,
@@ -102,14 +101,62 @@ class _HomeScreenState extends State<HomeScreen> {
         etaMinutes: etaMinutes,
       );
 
-      setState(() => _isSubmittingBid = false);
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
 
-      if (success) {
-        _logger.success('Bid accepted for order #${order.id}');
-      } else {
-        _logger.warning('Bid submitted but not accepted for order #${order.id}');
+      if (mounted) {
+        if (success) {
+          _logger.success('Bid accepted for order #${order.id}');
+          UIHelper.showSnackBar(
+            context,
+            '🎉 Your bid was accepted!',
+            backgroundColor: AppColors.primaryGreen,
+          );
+        } else {
+          _logger.warning('Bid submitted but not accepted for order #${order.id}');
+          UIHelper.showSnackBar(
+            context,
+            'Your bid has been submitted. Waiting for customer decision...',
+            backgroundColor: AppColors.primaryBlue,
+          );
+        }
       }
     }
+  }
+
+  /// Navigate to trip map screen
+  void _navigateToTripMap(Order order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripMapScreen(order: order),
+      ),
+    );
+  }
+
+  /// Show loading dialog with spinner
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        content: Row(
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showDeclineConfirmation(Order order) {
@@ -175,16 +222,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      setState(() => _isProcessingArrival = true);
+      _showLoadingDialog('Confirming arrival...');
 
       final success = await _driverService.sendArrival(order.id);
 
-      setState(() => _isProcessingArrival = false);
+      if (mounted) Navigator.pop(context);
 
       if (success && mounted) {
         _logger.success('Arrival confirmed for order #${order.id}');
+        UIHelper.showSnackBar(
+          context,
+          'Arrival confirmed!',
+          backgroundColor: AppColors.primaryGreen,
+        );
       } else if (mounted) {
         _logger.error('Failed to confirm arrival for order #${order.id}');
+        UIHelper.showSnackBar(
+          context,
+          'Failed to confirm arrival',
+          backgroundColor: Colors.red,
+        );
       }
     }
   }
@@ -219,16 +276,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      setState(() => _isProcessingCompletion = true);
+      _showLoadingDialog('Completing trip...');
 
       final success = await _driverService.sendTripCompletion(order.id);
 
-      setState(() => _isProcessingCompletion = false);
+      if (mounted) Navigator.pop(context);
 
       if (success && mounted) {
         _logger.success('Trip completed for order #${order.id}');
+        UIHelper.showSnackBar(
+          context,
+          '🎉 Trip completed successfully!',
+          backgroundColor: AppColors.primaryGreen,
+        );
       } else if (mounted) {
         _logger.error('Failed to complete trip for order #${order.id}');
+        UIHelper.showSnackBar(
+          context,
+          'Failed to complete trip',
+          backgroundColor: Colors.red,
+        );
       }
     }
   }
@@ -346,8 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF4CAF50).withOpacity(0.2),
-                      const Color(0xFF4CAF50).withOpacity(0.05),
+                      const Color(0xFF4CAF50).withValues(alpha: 0.2),
+                      const Color(0xFF4CAF50).withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -358,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 70,
                       height: 70,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withOpacity(0.2),
+                        color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: const Color(0xFF4CAF50),
@@ -595,7 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
         ),
       ),
       child: BottomNavigationBar(
@@ -654,7 +721,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isOnline ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                      color: isOnline ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isOnline ? Colors.green : Colors.red,
@@ -778,6 +845,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onCompletePressed: order.hasArrived
                         ? () => _showCompleteConfirmation(order)
                         : null,
+                    onViewTripPressed: () => _navigateToTripMap(order),
                   );
                 },
               ),
@@ -797,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.1),
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(

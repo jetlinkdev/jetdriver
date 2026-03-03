@@ -186,30 +186,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<DriverStatus>(
-            value: _driverService.driverStatus,
-            dropdownColor: AppColors.cardBackground,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: UIStrings.status,
-              labelStyle: const TextStyle(color: Colors.white70),
-              filled: true,
-              fillColor: AppColors.whiteOpacity5,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              prefixIcon: const Icon(Icons.info_outline, color: Colors.white70),
-            ),
-            items: DriverStatus.values.map((status) {
-              return DropdownMenuItem(
-                value: status,
-                child: Text(status.name.toUpperCase()),
+          Builder(
+            builder: (BuildContext context) {
+              return DropdownButtonFormField<DriverStatus>(
+                initialValue: _driverService.driverStatus,
+                dropdownColor: AppColors.cardBackground,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: UIStrings.status,
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: AppColors.whiteOpacity5,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  prefixIcon: const Icon(Icons.info_outline, color: Colors.white70),
+                ),
+                items: DriverStatus.values.map((status) {
+                  return DropdownMenuItem(
+                    value: status,
+                    child: Text(status.name.toUpperCase()),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    _driverService.setDriverStatus(value);
+                  }
+                },
               );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                _driverService.setDriverStatus(value);
-              }
             },
           ),
         ],

@@ -169,7 +169,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.1),
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -234,7 +234,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                     hintText: 'Email from Google account',
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
-                    fillColor: AppColors.cardBackground.withOpacity(0.5),
+                    fillColor: AppColors.cardBackground.withValues(alpha: 0.5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -368,10 +368,10 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withOpacity(0.1),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primaryBlue.withOpacity(0.3),
+                      color: AppColors.primaryBlue.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -387,7 +387,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                           'Make sure your information is accurate. This will be shown to customers.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -435,7 +435,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                   'By registering, you agree to our Terms of Service and Privacy Policy',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                   textAlign: TextAlign.center,
                 ),
