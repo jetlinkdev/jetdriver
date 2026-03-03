@@ -5,7 +5,6 @@ import 'dart:async';
 import 'dart:convert';
 import '../models/order.dart';
 import '../constants/api_constants.dart';
-import '../services/driver_service.dart';
 import '../services/websocket_service.dart';
 import '../constants/intent_constants.dart';
 
@@ -25,7 +24,6 @@ class _TripMapScreenState extends State<TripMapScreen> {
   String? errorMessage;
   
   StreamSubscription? _messageSubscription;
-  final _driverService = DriverService.instance;
   final _wsService = WebSocketService.instance;
 
   @override
@@ -172,7 +170,7 @@ class _TripMapScreenState extends State<TripMapScreen> {
         title: const Text('Trip Details'),
         backgroundColor: const Color(0xFF1E1E1E),
         foregroundColor: Colors.white,
-        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: Column(
         children: [
@@ -199,7 +197,7 @@ class _TripMapScreenState extends State<TripMapScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -253,7 +251,7 @@ class _TripMapScreenState extends State<TripMapScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -300,7 +298,7 @@ class _TripMapScreenState extends State<TripMapScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: iconColor, size: 20),
@@ -359,7 +357,7 @@ class _TripMapScreenState extends State<TripMapScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
+        color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: chipColor, width: 1),
       ),
