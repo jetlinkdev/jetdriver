@@ -14,33 +14,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _driverIdController = TextEditingController();
-  final _wsUrlController = TextEditingController();
   final _driverService = DriverService.instance;
   final _authService = AuthService();
   final _logger = Logger.instance;
-
-  @override
-  void initState() {
-    super.initState();
-    _driverIdController.text = _driverService.driverId;
-    _wsUrlController.text = _driverService.webSocketUrl;
-  }
-
-  void _saveSettings() {
-    _driverService.setDriverId(_driverIdController.text);
-    _driverService.setWebSocketUrl(_wsUrlController.text);
-    _logger.info('Settings saved');
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(UIStrings.settingsSavedSuccessfully),
-          backgroundColor: AppColors.primaryGreen,
-        ),
-      );
-    }
-  }
 
   Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
@@ -101,17 +77,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Driver Settings Section
-              _buildSectionTitle(UIStrings.driverSettingsSection),
+              // Driver Status Section
+              _buildSectionTitle('Driver Status'),
               const SizedBox(height: 16),
-              _buildDriverSettingsCard(),
-
-              const SizedBox(height: 24),
-
-              // Connection Settings Section
-              _buildSectionTitle(UIStrings.connectionSettings),
-              const SizedBox(height: 16),
-              _buildConnectionSettingsCard(),
+              _buildDriverStatusCard(),
 
               const SizedBox(height: 24),
 
@@ -119,31 +88,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildSectionTitle(UIStrings.account),
               const SizedBox(height: 16),
               _buildAccountCard(),
-
-              const SizedBox(height: 32),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveSettings,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    UIStrings.saveSettings,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -162,85 +106,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDriverSettingsCard() {
+  Widget _buildDriverStatusCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.whiteOpacity5,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        children: [
-          TextField(
-            controller: _driverIdController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: UIStrings.driverId,
-              labelStyle: const TextStyle(color: Colors.white70),
-              filled: true,
-              fillColor: AppColors.whiteOpacity5,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              prefixIcon: const Icon(Icons.person, color: Colors.white70),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Builder(
-            builder: (BuildContext context) {
-              return DropdownButtonFormField<DriverStatus>(
-                initialValue: _driverService.driverStatus,
-                dropdownColor: AppColors.cardBackground,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: UIStrings.status,
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: AppColors.whiteOpacity5,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.info_outline, color: Colors.white70),
-                ),
-                items: DriverStatus.values.map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status.name.toUpperCase()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    _driverService.setDriverStatus(value);
-                  }
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConnectionSettingsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.whiteOpacity5,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: _wsUrlController,
+      child: DropdownButtonFormField<DriverStatus>(
+        initialValue: _driverService.driverStatus,
+        dropdownColor: AppColors.cardBackground,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          labelText: UIStrings.websocketUrl,
+          labelText: 'Your Status',
           labelStyle: const TextStyle(color: Colors.white70),
           filled: true,
           fillColor: AppColors.whiteOpacity5,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          prefixIcon: const Icon(Icons.cloud, color: Colors.white70),
+          prefixIcon: const Icon(Icons.flag, color: Colors.white70),
         ),
+        items: DriverStatus.values.map((status) {
+          return DropdownMenuItem(
+            value: status,
+            child: Text(status.name.toUpperCase()),
+          );
+        }).toList(),
+        onChanged: (DriverStatus? newValue) {
+          if (newValue != null) {
+            _driverService.setDriverStatus(newValue);
+          }
+        },
       ),
     );
   }
@@ -283,8 +180,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _driverIdController.dispose();
-    _wsUrlController.dispose();
     super.dispose();
   }
 }

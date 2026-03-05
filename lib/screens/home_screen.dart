@@ -22,8 +22,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _driverIdController = TextEditingController();
-  final _wsUrlController = TextEditingController();
   final _logger = Logger.instance;
   final _driverService = DriverService.instance;
   final _authService = AuthService();
@@ -38,10 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeApp() async {
     await _driverService.initialize();
-    setState(() {
-      _driverIdController.text = _driverService.driverId;
-      _wsUrlController.text = _driverService.webSocketUrl;
-    });
 
     // User is already authenticated (checked by SplashScreen)
     // Connect to WebSocket and check driver status
@@ -55,20 +49,20 @@ class _HomeScreenState extends State<HomeScreen> {
       // Send auth to backend
       await _driverService.sendAuth();
 
-      // Check driver registration status after a short delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _driverService.checkDriverStatus();
-          _checkAndShowRegistrationDialog();
-        }
-      });
-    }
-  }
+      // Give time for auth response to be processed
+      await Future.delayed(const Duration(milliseconds: 300));
 
-  void _checkAndShowRegistrationDialog() {
-    // DEPRECATED: Registration now handled at WelcomeScreen
-    // User should never reach here without being registered
-    debugPrint('HomeScreen loaded: isDriverRegistered=${_driverService.isDriverRegistered}');
+      // Check driver registration status after auth
+      if (mounted) {
+        await _driverService.checkDriverStatus();
+
+        // Always send status update to sync with backend
+        if (_driverService.isDriverRegistered) {
+          debugPrint('Driver is registered, syncing active orders');
+          _driverService.sendDriverStatusUpdateForSync();
+        }
+      }
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -883,8 +877,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _driverIdController.dispose();
-    _wsUrlController.dispose();
     super.dispose();
   }
 }

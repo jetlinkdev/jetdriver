@@ -4,11 +4,11 @@ import '../constants/hive_constants.dart';
 class AppConfig {
   // Backend API base URL
   // Updated to the current ngrok URL
-  static const String baseUrl = 'https://bf8f-2404-c0-3474-2e98-6826-132a-2315-a2b6.ngrok-free.app/api';
+  static const String baseUrl = 'https://ebfe-2404-c0-3074-3980-61d1-6410-b91f-aeb9.ngrok-free.app/api';
 
   // WebSocket server URL
   // Updated to the current ngrok URL
-  static const String defaultWebSocketUrl = 'wss://bf8f-2404-c0-3474-2e98-6826-132a-2315-a2b6.ngrok-free.app/ws';
+  static const String defaultWebSocketUrl = 'wss://ebfe-2404-c0-3074-3980-61d1-6410-b91f-aeb9.ngrok-free.app/ws';
 
   // App version
   static const String appVersion = '1.0.0';
